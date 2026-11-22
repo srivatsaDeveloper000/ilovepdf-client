@@ -1,14 +1,12 @@
-import axios from "axios"
-
+import axios from "axios";
 
 const api = axios.create({
-    baseURL :"http://localhost:8009/api/tasksFlow",
+    baseURL :"http://localhost:8010/api/tasksFlow",
     timeout : 10000 ,
     headers :{
         "Content-Type" :"application/json"
     }
 })
-
 
 api.interceptors.request.use(
     (config) => {
@@ -18,7 +16,6 @@ api.interceptors.request.use(
         return Promise.reject(error)
     }
 )
-
 
 api.interceptors.response.use(
     (response) => {
