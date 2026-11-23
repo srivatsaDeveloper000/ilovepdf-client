@@ -13,21 +13,13 @@ import {
 } from '@mui/material'
 import { ArrowRight, Eye, EyeOff, FileText, LockKeyhole, Mail } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { isAxiosError } from 'axios';
 import api from '@/api services/api';
 
 const roleRoutes: Record<string, string> = {
-  admin: "/admin",
-  "Super admin": "/admin",
-};
-
-type LoginResponse = {
-  statusCode?: number;
-  message?: string;
-  user_role?: string;
-  data?: { user_role?: string };
-  componentData?: { data?: { user_role?: string } };
-  componenData?: { data?: { user_role?: string } };
+  admin: "/admin/",
+  "Super admin": "/admin/",
+  client: "/client",
+  control_tower: "/control-tower"
 };
 
 
@@ -39,41 +31,30 @@ function Login() {
   const navigation = useNavigate();
   const [passwordError, setPasswordError] = useState<string>("");
   const [emailError, setEmailError] = useState<string>("");
-  const [formError, setFormError] = useState<string>("");
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true)
-    setFormError("");
-    setEmailError("");
-    setPasswordError("");
     try {
-      const { data: responseData } = await api.post<LoginResponse>("/login", { email, password })
-      if (responseData.statusCode === 401) {
-        setPasswordError(responseData.message || "Invalid email or password");
-        return;
+      const responseData = await api.post("/login", { email, password })
+      setLoading(false)
+      console.log("resp[onseData", responseData)
+      if (responseData) {
+        if (responseData.statusCode === 401) {
+          setPasswordError(responseData.message || "")
+          setEmailError(responseData.message || "")
+          return
+        }
+        const user_role = responseData.componenData.data.user_role
+        const destination = roleRoutes[user_role];
+        if (destination) {
+          navigation(destination);
+        }
+
       }
-      const userRole = responseData.user_role
-        ?? responseData.data?.user_role
-        ?? responseData.componentData?.data?.user_role
-        ?? responseData.componenData?.data?.user_role;
-      if (!userRole) {
-        setFormError("Sign in succeeded, but the response did not include a user role.");
-        return;
-      }
-      const destination = roleRoutes[userRole];
-      if (!destination) {
-        setFormError(`No application is configured for the “${userRole}” role.`);
-        return;
-      }
-      navigation(destination);
-    } catch (error: unknown) {
-      const message = isAxiosError<LoginResponse>(error)
-        ? error.response?.data?.message || error.message
-        : error instanceof Error ? error.message : "Sign in failed. Please try again.";
-      setFormError(message);
-    } finally {
-      setLoading(false);
+    } catch (error: any) {
+      setLoading(false)
+      throw error.message
     }
   }
 
@@ -133,8 +114,8 @@ function Login() {
               autoComplete="email"
               placeholder="you@example.com"
               value={email}
-                error={email ? true : false}
-             helperText={passwordError}
+              error={emailError ? true : false}
+              helperText={emailError}
               onChange={(event) => setEmail(event.target.value)}
               required
               fullWidth
@@ -181,7 +162,6 @@ function Login() {
             <Button loading={loading} className="submit-button" type="submit" variant="contained" fullWidth endIcon={<ArrowRight size={18} />}>
               Sign in
             </Button>
-            {formError && <Typography role="alert" color="error">{formError}</Typography>}
           </Stack>
 
           <Typography component="p" className="signup-prompt">
